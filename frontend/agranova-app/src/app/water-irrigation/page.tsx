@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { recordActivity } from '@/utils/statisticsService';
 
-const cropTypes = ['Potato', 'Tomato', 'Wheat', 'Rice', 'Corn', 'Barley', 'Soybean', 'Cotton'];
+const cropTypes = ['wheat','tomato','potato', 'strawberry', 'onion', 'carrot'];
 
 // Mock API response
 const mockPredictionResult = {
@@ -19,7 +19,7 @@ const mockPredictionResult = {
   recommendations: 'Based on your location and planting time, we recommend drip irrigation for optimal water usage. Monitor soil moisture regularly and adjust irrigation accordingly.'
 };
 
-export default function WaterIrrigation() {
+export default function WaterIrrigation(){
   const router = useRouter();
   
   const [formData, setFormData] = useState({
@@ -35,14 +35,14 @@ export default function WaterIrrigation() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev:any) => ({
       ...prev,
       [name]: value
     }));
     
     // Clear error when user types
     if (errors[name]) {
-      setErrors(prev => {
+      setErrors((prev:any) => {
         const newErrors = {...prev};
         delete newErrors[name];
         return newErrors;
@@ -76,24 +76,72 @@ export default function WaterIrrigation() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  function calculateDays(plantingTime:any) {
+    if (!plantingTime) return;
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const selectedDate = new Date(plantingTime);
+    const today = new Date();
+
+    // Reset time part to avoid partial days
+    selectedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = today - selectedDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
-    
+
+    const req_body = {
+        long:Number(formData.longitude),
+        lat:Number(formData.latitude),
+        crop:formData.cropType,
+        days:calculateDays(formData.plantingTime),
+      }
+    console.log('formData : ', formData)
+    console.log('req_body : ', req_body)
     setIsLoading(true);
+    // const response = await fetch('https://achref888.app.n8n.cloud/webhook/1d30ace0-f76d-47f0-8860-9e6d94d80cdc',{
+    //   method:"POST",
+    //   body:JSON.stringify(req_body),
+    // })
+
+    const response = await fetch('/api/water-irrigation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(req_body),
+    });
+
+    const result = await response.json();
     
-    // Simulate API call
-    setTimeout(() => {
-      setPrediction(mockPredictionResult);
-      setIsLoading(false);
+    console.log('result: ',result)
+    setPrediction(prev=>({
+      daily_irrigation:result.data.daily_irrigation,
+      recommendation:result.data.recommendation,
+    }))
+    
+    setIsLoading(false);
+    
+    
+    // // Simulate API call
+    // setTimeout(() => {
+    //   setPrediction(mockPredictionResult);
+    //   setIsLoading(false);
       
-      // Record this activity for statistics
-      recordActivity('irrigation', `Water irrigation prediction for ${formData.cropType}`);
-    }, 1500);
+    //   // Record this activity for statistics
+    //   recordActivity('irrigation', `Water irrigation prediction for ${formData.cropType}`);
+    // }, 1500);
+
+
   };
 
   const resetForm = () => {
@@ -213,30 +261,19 @@ export default function WaterIrrigation() {
               <div className="results-content">
                 <div className="prediction-result">
                   <h3>Total Water Requirement</h3>
-                  <div className="prediction-value">{prediction.waterRequirement}</div>
+                  <div className="prediction-value">{prediction.daily_irrigation}</div>
                   
-                  <h3 style={{ marginTop: '20px' }}>Irrigation Schedule</h3>
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
                     gap: '8px',
                     marginTop: '10px'
                   }}>
-                    {prediction.irrigationSchedule.map((item: any, index: number) => (
-                      <div key={index} style={{ 
-                        padding: '8px', 
-                        backgroundColor: 'var(--background-color)', 
-                        borderRadius: '8px',
-                        textAlign: 'center'
-                      }}>
-                        <div style={{ fontWeight: 'bold' }}>Week {item.week}</div>
-                        <div>{item.amount}</div>
-                      </div>
-                    ))}
+                    
                   </div>
                   
                   <h3 style={{ marginTop: '20px' }}>Recommendations</h3>
-                  <p>{prediction.recommendations}</p>
+                  <p>{prediction.recommendation}</p>
                 </div>
               </div>
             ) : (

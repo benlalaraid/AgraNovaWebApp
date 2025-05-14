@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { recordActivity } from '@/utils/statisticsService';
 
 const cropTypes = ['Potato', 'Tomato', 'Wheat', 'Rice', 'Corn', 'Barley', 'Soybean', 'Cotton'];
 
@@ -89,6 +90,9 @@ export default function WaterIrrigation() {
     setTimeout(() => {
       setPrediction(mockPredictionResult);
       setIsLoading(false);
+      
+      // Record this activity for statistics
+      recordActivity('irrigation', `Water irrigation prediction for ${formData.cropType}`);
     }, 1500);
   };
 
@@ -104,129 +108,151 @@ export default function WaterIrrigation() {
   };
 
   return (
-    <div className="container">
+    <div className="form-page-container">
       <div className="header">
         <button className="back-button" onClick={() => router.push('/')}>←</button>
         <h1>Water Irrigation Prediction</h1>
         <div style={{ width: '24px' }}></div>
       </div>
+      
+      <div className="prediction-layout">
+        <div className="form-column">
+          <div className="card">
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label htmlFor="cropType">Crop Type</label>
+                <select
+                  id="cropType"
+                  name="cropType"
+                  value={formData.cropType}
+                  onChange={handleChange}
+                  className={errors.cropType ? 'error' : ''}
+                >
+                  <option value="">Select a crop</option>
+                  {cropTypes.map(crop => (
+                    <option key={crop} value={crop}>{crop}</option>
+                  ))}
+                </select>
+                {errors.cropType && <p className="error-text">{errors.cropType}</p>}
+              </div>
 
-      <div className="card">
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="cropType">Crop Type</label>
-            <select
-              id="cropType"
-              name="cropType"
-              value={formData.cropType}
-              onChange={handleChange}
-              className={errors.cropType ? 'error' : ''}
-            >
-              <option value="">Select a crop</option>
-              {cropTypes.map(crop => (
-                <option key={crop} value={crop}>{crop}</option>
-              ))}
-            </select>
-            {errors.cropType && <p className="error-text">{errors.cropType}</p>}
-          </div>
+              <div className="form-group">
+                <label htmlFor="latitude">Latitude</label>
+                <input
+                  type="number"
+                  id="latitude"
+                  name="latitude"
+                  placeholder="e.g., 36.7"
+                  value={formData.latitude}
+                  onChange={handleChange}
+                  className={errors.latitude ? 'error' : ''}
+                  step="0.000001"
+                />
+                {errors.latitude && <p className="error-text">{errors.latitude}</p>}
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="latitude">Latitude</label>
-            <input
-              type="number"
-              id="latitude"
-              name="latitude"
-              placeholder="e.g., 36.7"
-              value={formData.latitude}
-              onChange={handleChange}
-              className={errors.latitude ? 'error' : ''}
-              step="0.000001"
-            />
-            {errors.latitude && <p className="error-text">{errors.latitude}</p>}
-          </div>
+              <div className="form-group">
+                <label htmlFor="longitude">Longitude</label>
+                <input
+                  type="number"
+                  id="longitude"
+                  name="longitude"
+                  placeholder="e.g., 3.2"
+                  value={formData.longitude}
+                  onChange={handleChange}
+                  className={errors.longitude ? 'error' : ''}
+                  step="0.000001"
+                />
+                {errors.longitude && <p className="error-text">{errors.longitude}</p>}
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="longitude">Longitude</label>
-            <input
-              type="number"
-              id="longitude"
-              name="longitude"
-              placeholder="e.g., 3.2"
-              value={formData.longitude}
-              onChange={handleChange}
-              className={errors.longitude ? 'error' : ''}
-              step="0.000001"
-            />
-            {errors.longitude && <p className="error-text">{errors.longitude}</p>}
-          </div>
+              <div className="form-group">
+                <label htmlFor="plantingTime">Planting Time</label>
+                <input
+                  type="date"
+                  id="plantingTime"
+                  name="plantingTime"
+                  value={formData.plantingTime}
+                  onChange={handleChange}
+                  className={errors.plantingTime ? 'error' : ''}
+                />
+                {errors.plantingTime && <p className="error-text">{errors.plantingTime}</p>}
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="plantingTime">Planting Time</label>
-            <input
-              type="date"
-              id="plantingTime"
-              name="plantingTime"
-              value={formData.plantingTime}
-              onChange={handleChange}
-              className={errors.plantingTime ? 'error' : ''}
-            />
-            {errors.plantingTime && <p className="error-text">{errors.plantingTime}</p>}
-          </div>
-
-          <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-            <button 
-              type="button" 
-              onClick={resetForm}
-              style={{ backgroundColor: '#9e9e9e' }}
-            >
-              Reset
-            </button>
-            <button 
-              type="submit"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Predicting...' : 'Predict Water Requirements'}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {prediction && (
-        <div className="result-container">
-          <h2 style={{ marginBottom: '16px' }}>Irrigation Prediction Results</h2>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>Total Water Requirement</h3>
-            <p>{prediction.waterRequirement}</p>
-          </div>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>Irrigation Schedule</h3>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-              gap: '8px'
-            }}>
-              {prediction.irrigationSchedule.map((item: any, index: number) => (
-                <div key={index} style={{ 
-                  padding: '8px', 
-                  backgroundColor: 'var(--background-color)', 
-                  borderRadius: '8px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontWeight: 'bold' }}>Week {item.week}</div>
-                  <div>{item.amount}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <div>
-            <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>Recommendations</h3>
-            <p>{prediction.recommendations}</p>
+              <div className="button-container">
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={resetForm}
+                  disabled={isLoading}
+                >
+                  Reset
+                </button>
+                <button 
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Predicting...' : 'Predict Water Requirements'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      )}
+        
+        <div className="results-column">
+          <div className="results-card">
+            <h2>Irrigation Prediction Results</h2>
+            
+            {isLoading ? (
+              <div className="loading-indicator">
+                <div className="spinner"></div>
+                <p>Analyzing crop and location data...</p>
+              </div>
+            ) : prediction ? (
+              <div className="results-content">
+                <div className="prediction-result">
+                  <h3>Total Water Requirement</h3>
+                  <div className="prediction-value">{prediction.waterRequirement}</div>
+                  
+                  <h3 style={{ marginTop: '20px' }}>Irrigation Schedule</h3>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                    gap: '8px',
+                    marginTop: '10px'
+                  }}>
+                    {prediction.irrigationSchedule.map((item: any, index: number) => (
+                      <div key={index} style={{ 
+                        padding: '8px', 
+                        backgroundColor: 'var(--background-color)', 
+                        borderRadius: '8px',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontWeight: 'bold' }}>Week {item.week}</div>
+                        <div>{item.amount}</div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <h3 style={{ marginTop: '20px' }}>Recommendations</h3>
+                  <p>{prediction.recommendations}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="results-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <h3>Enter Parameters to Get Irrigation Prediction</h3>
+                <p>Fill out the form on the left to receive irrigation recommendations based on your crop and location data.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

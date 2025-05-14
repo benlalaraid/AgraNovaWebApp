@@ -110,81 +110,129 @@ export default function DiseaseDetection() {
   };
 
   return (
-    <div className="container">
+    <div className="form-page-container">
       <div className="header">
         <button className="back-button" onClick={() => router.push('/')}>←</button>
         <h1>Leaf Disease Detection</h1>
         <div style={{ width: '24px' }}></div>
       </div>
 
-      <div className="chat-container">
-        <div className="chat-messages">
-          {messages.map((message, index) => (
-            <div 
-              key={index} 
-              className={`message ${message.isUser ? 'user-message' : 'system-message'}`}
-            >
-              {message.text}
-            </div>
-          ))}
-        </div>
+      <div className="prediction-layout">
+        <div className="form-column">
+          <div className="card">
+            <div className="chat-container">
+              <div className="chat-messages">
+                {messages.map((message, index) => (
+                  <div 
+                    key={index} 
+                    className={`message ${message.isUser ? 'user-message' : 'system-message'}`}
+                  >
+                    {message.text}
+                  </div>
+                ))}
+              </div>
 
-        <div className="card" style={{ marginTop: 'auto' }}>
-          {!selectedImage ? (
-            <div className="image-upload-container">
-              <p>Upload or capture a leaf image</p>
-              <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                <button onClick={captureImage}>
-                  📷 Capture
-                </button>
-                <button onClick={captureImage}>
-                  🖼️ Gallery
-                </button>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageUpload} 
-                  ref={fileInputRef}
-                  style={{ display: 'none' }}
-                />
+              <div style={{ marginTop: 'auto' }}>
+                {!selectedImage ? (
+                  <div className="image-upload-container">
+                    <p>Upload or capture a leaf image</p>
+                    <div className="button-container">
+                      <button 
+                        className="btn-secondary"
+                        onClick={captureImage}
+                      >
+                        📷 Capture
+                      </button>
+                      <button 
+                        className="btn-primary"
+                        onClick={captureImage}
+                      >
+                        🖼️ Gallery
+                      </button>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleImageUpload} 
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center' }}>
+                    <img 
+                      src={selectedImage} 
+                      alt="Selected leaf" 
+                      className="preview-image"
+                    />
+                    <div className="button-container">
+                      <button 
+                        className="btn-secondary"
+                        onClick={resetAnalysis}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        className="btn-primary"
+                        onClick={analyzeImage} 
+                        disabled={isAnalyzing}
+                      >
+                        {isAnalyzing ? 'Analyzing...' : 'Analyze Leaf'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div style={{ textAlign: 'center' }}>
-              <img 
-                src={selectedImage} 
-                alt="Selected leaf" 
-                className="preview-image"
-              />
-              <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                <button 
-                  onClick={resetAnalysis}
-                  style={{ backgroundColor: '#f44336' }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={analyzeImage} 
-                  disabled={isAnalyzing}
-                >
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze Leaf'}
-                </button>
+          </div>
+        </div>
+        
+        <div className="results-column">
+          <div className="results-card">
+            <h2>Disease Detection Results</h2>
+            
+            {isAnalyzing ? (
+              <div className="loading-indicator">
+                <div className="spinner"></div>
+                <p>Analyzing leaf image...</p>
               </div>
-            </div>
-          )}
+            ) : results ? (
+              <div className="results-content">
+                <div className="prediction-result">
+                  <h3 style={{ color: results.status === 'Healthy' ? 'var(--primary-color)' : '#f44336' }}>
+                    {results.status}
+                  </h3>
+                  {results.disease && (
+                    <div className="result-item">
+                      <strong>Disease:</strong> {results.disease}
+                    </div>
+                  )}
+                  {results.details && (
+                    <div className="result-item">
+                      <strong>Details:</strong> {results.details}
+                    </div>
+                  )}
+                  {results.treatment && (
+                    <div className="result-item">
+                      <strong>Treatment:</strong> {results.treatment}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="results-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <h3>Upload a Leaf Image</h3>
+                <p>Upload or capture a leaf image on the left to receive disease detection results.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {results && (
-        <div className="result-container">
-          <h2 style={{ marginBottom: '8px', color: results.status === 'Healthy' ? 'var(--primary-color)' : '#f44336' }}>
-            {results.status}
-          </h2>
-          {results.disease && <p><strong>Disease:</strong> {results.disease}</p>}
-          {results.details && <p style={{ marginTop: '8px' }}><strong>Details:</strong> {results.details}</p>}
-          {results.treatment && <p style={{ marginTop: '8px' }}><strong>Treatment:</strong> {results.treatment}</p>}
-        </div>
-      )}
     </div>
   );
 }

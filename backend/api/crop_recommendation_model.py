@@ -32,6 +32,7 @@ crop_labels = [
     'pigeonpeas', 'pomegranate', 'rice', 'watermelon'
 ]
 
+
 @app.route('/api/crop-recommendation', methods=['POST'])
 def predict():
     if model is None:

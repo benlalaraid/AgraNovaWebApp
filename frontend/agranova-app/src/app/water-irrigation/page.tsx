@@ -124,7 +124,7 @@ export default function WaterIrrigation(){
     const result = await response.json();
     
     console.log('result: ',result)
-    setPrediction(prev=>({
+    setPrediction((prev:any)=>({
       daily_irrigation:result.data.daily_irrigation,
       recommendation:result.data.recommendation,
     }))

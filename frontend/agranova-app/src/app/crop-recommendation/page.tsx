@@ -286,7 +286,7 @@ export default function CropRecommendation() {
                   <div className="crop-recommendation">
                     <div className="recommended-crop">{recommendation.prediction}</div>
                     
-                    <div>
+                    {/* <div>
                       <div className="confidence-label">Confidence: {recommendation.confidence}%</div>
                       <div className="confidence-bar">
                         <div 
@@ -294,7 +294,7 @@ export default function CropRecommendation() {
                           style={{ width: `${recommendation.confidence}%` }}
                         ></div>
                       </div>
-                    </div>
+                    </div> */}
                     
                     <p className="recommendation-details">{recommendation.details}</p>
                     

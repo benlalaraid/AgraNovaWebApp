@@ -1,0 +1,16 @@
+flask
+flask-cors
+scikit-learn
+pandas
+torch
+torchvision
+Pillow
+tiktoken
+python-decouple
+langchain
+langchain-core
+langchain-openai
+langchain-chroma
+
+
+

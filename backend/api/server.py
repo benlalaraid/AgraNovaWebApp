@@ -20,31 +20,95 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain.schema import Document
 import warnings
+import pandas as pd
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
+from sklearn.ensemble import RandomForestClassifier
+from skopt import BayesSearchCV
+from skopt.space import Integer, Real
+
 warnings.filterwarnings("ignore")
+
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-#
+def crop_recommendation_model():
+    df = pd.read_csv('Crop_recommendation.csv')
+    X = df.drop('label', axis=1)
+    le = LabelEncoder()
 
+    y = le.fit_transform(df['label'])
+
+    # Split data (already assumed split)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3,
+                                                        shuffle=True, random_state=0)
+
+    # Cross-validation strategy
+    cv_strategy = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+
+    # 1️⃣ Bayesian Optimization for Random Forest
+    rf_search = BayesSearchCV(
+        RandomForestClassifier(random_state=0),
+        {
+            'n_estimators': Integer(50, 300),
+            'max_depth': Integer(3, 20),
+            'min_samples_split': Integer(2, 10),
+            'min_samples_leaf': Integer(1, 10)
+        },
+        n_iter=20,
+        cv=cv_strategy,
+        scoring='accuracy',
+        n_jobs=-1,
+        random_state=42
+    )
+    rf_search.fit(X_train, y_train)
+    rf_best = rf_search.best_estimator_
+    rf_acc = accuracy_score(y_test, rf_best.predict(X_test))
+    # print(f"✅ Tuned Random Forest Accuracy: {rf_acc:.4f}")
+    # print(f"Best RF Params: {rf_search.best_params_}")
+    return rf_best , le
+
+
+#
+XGBOOST_MODEL_PATH = "xgboost_crop_model.pkl"
+LABEL_ENCODER_PATH = "label_encoder.pkl"
+
+# Try to load the model and label encoder
+# try:
+#     with open(XGBOOST_MODEL_PATH, 'rb') as f:
+#         xgboost_model = pickle.load(f)
+#         print(xgboost_model)
+#     print("Model loaded successfully\n\n\n")
+    
+#     with open(LABEL_ENCODER_PATH, 'rb') as f:
+#         label_encoder = pickle.load(f)
+#     print("Label encoder loaded successfully")
+    
+#     xgboost_model_loaded = True
+# except Exception as e:
+#     print(f"Error loading xgboostmodel: {e}")
+#     xgboost_model_loaded = False
+crop_model,le = crop_recommendation_model()
 # Path to the model file
 CROP_RECOMMENDATION_MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "notebooks and best models",
     "crop recommendation",
-    "best_random_forest_model_for_Crop_recommendation copy.pkl"
+    "random_forest_model.pkl"
 )
-print(CROP_RECOMMENDATION_MODEL_PATH)
 
 
-# Load the model
-try:
-    with open(CROP_RECOMMENDATION_MODEL_PATH, 'rb') as f:
-        crop_recommendation_model = pickle.load(f)
-    print(f"Model loaded successfully from {CROP_RECOMMENDATION_MODEL_PATH}")
-except Exception as e:
-    print(f"Error loading model: {e}")
-    crop_recommendation_model = None
+# # Load the model
+# try:
+#     with open(CROP_RECOMMENDATION_MODEL_PATH, 'rb') as f:
+#         crop_recommendation_model = pickle.load(f)
+#     print(f"Model loaded successfully from {CROP_RECOMMENDATION_MODEL_PATH}")
+# except Exception as e:
+#     print(f"Error loading model: {e}")
+#     crop_recommendation_model = None
 
 
 # Define the crop labels (must match the order used during model training)
@@ -63,12 +127,13 @@ crop_labels = [
 
 @app.route('/api/crop-recommendation', methods=['POST'])
 def predict_():
-    if crop_recommendation_model is None:
+    if crop_model is None:
         return jsonify({'error': 'Model not loaded'}), 500
     
     try:
         # Get input data from request
         data = request.json
+        print('data',data)
         
         # Extract features
         N = float(data.get('N', 0))
@@ -83,10 +148,12 @@ def predict_():
         input_data = np.array([[N, P, K, temperature, humidity, ph, rainfall]])
         
         # Make prediction
-        prediction = crop_recommendation_model.predict(input_data)[0]
-        
+        prediction = crop_model.predict(input_data)[0]
+        print('prediction',prediction)
+        print('le.inverse_transform([prediction])[0]',le.inverse_transform([prediction])[0])
+        return jsonify({'prediction': le.inverse_transform([prediction])[0]}), 200 #jsonify({'prediction': prediction}) , 200
         # Get prediction probabilities
-        probabilities = crop_recommendation_model.predict_proba(input_data)[0]
+        # probabilities = crop_recommendation_model.predict_proba(input_data)[0]
         
         # Get the predicted crop
         predicted_crop = crop_labels[prediction]
@@ -421,9 +488,10 @@ def predict___():
 def health_check():
     return jsonify({'status': 'healthy', 'models': {
         
-        'crop_recommendation ': crop_recommendation_model is not None,
+        # 'crop_recommendation ': crop_recommendation_model is not None,
         'crop_yield ': crop_yield_model is not None,
-        'plant_disease ': model is not None
+        'plant_disease ': model is not None,
+        'crop_model': crop_model is not None
 
         
         }})

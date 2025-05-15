@@ -67,11 +67,12 @@ export async function POST(request: NextRequest) {
     // In a real implementation, this would be replaced with an actual API call
     
     // Create a URL to the Python backend service (to be implemented)
-    const backendUrl = '/api/python/crop-recommendation';
+    const backendUrl = 'http://127.0.0.1:5000/api/crop-recommendation';
     
     // Make a fetch request to the Python backend
     // This is commented out since we don't have the Python backend yet
-    /*
+    
+   
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
@@ -85,9 +86,12 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json();
-    const { prediction, probabilities } = data;
-    */
-    
+    const { prediction } = data;
+    console.log('prediction : ',prediction)
+    return NextResponse.json({
+      prediction,
+    });
+   
     // For now, we'll use a placeholder prediction based on common crop requirements
     // This will be replaced with the actual model prediction from the Python backend
     

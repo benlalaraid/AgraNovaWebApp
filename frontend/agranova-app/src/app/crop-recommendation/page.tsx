@@ -90,11 +90,11 @@ export default function CropRecommendation() {
       };
       
       // Get prediction from the model
-      const result = await predictCrop(modelInput);
+      const result = await predictCrop(modelInput) as any;
       setRecommendation(result);
       
       // Record this activity for statistics
-      recordActivity('recommendation', `Recommended crop: ${result.recommendedCrop}`);
+      recordActivity('recommendation', `Recommended crop: ${result.prediction}`);
     } catch (error) {
       console.error('Error predicting crop:', error);
       // Fallback to mock data if model fails
@@ -284,7 +284,7 @@ export default function CropRecommendation() {
                 <div className="recommendation-result">
                   <h3>Best Crop for Your Conditions</h3>
                   <div className="crop-recommendation">
-                    <div className="recommended-crop">{recommendation.recommendedCrop}</div>
+                    <div className="recommended-crop">{recommendation.prediction}</div>
                     
                     <div>
                       <div className="confidence-label">Confidence: {recommendation.confidence}%</div>

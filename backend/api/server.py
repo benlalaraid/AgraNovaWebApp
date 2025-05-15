@@ -19,20 +19,22 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain.schema import Document
-
+import warnings
+warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+#
 
 # Path to the model file
 CROP_RECOMMENDATION_MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "notebooks and best models",
     "crop recommendation",
-    "best_random_forest_model_for_Crop_recommendation.pkl"
+    "best_random_forest_model_for_Crop_recommendation copy.pkl"
 )
-
+print(CROP_RECOMMENDATION_MODEL_PATH)
 
 
 # Load the model
@@ -60,7 +62,7 @@ crop_labels = [
 
 
 @app.route('/api/crop-recommendation', methods=['POST'])
-def predict():
+def predict_():
     if crop_recommendation_model is None:
         return jsonify({'error': 'Model not loaded'}), 500
     
@@ -134,7 +136,7 @@ except Exception as e:
 
 
 @app.route('/api/yield-prediction', methods=['POST'])
-def predict():
+def predict__():
     if crop_yield_model is None:
         return jsonify({'error': 'Model not loaded'}), 500
     
@@ -346,7 +348,7 @@ class PlantDiseaseRAG:
 
 
 
-PLANT_DIAGNOSIS_MODEL_PATH = ''
+PLANT_DIAGNOSIS_MODEL_PATH = "best_dcnn_model.pth" 
 class_names_path = "class_names.json"  # Replace with your class names file
 # Load class names
 with open(class_names_path) as f:
@@ -377,22 +379,34 @@ rag_system = PlantDiseaseRAG(openai_api_key=OPENAI_API_KEY)
 
 
 @app.route('/api/plant-diagnosis', methods=['POST'])
-def predict():
+def predict___():
     
-    # Load and preprocess image
-    image = Image.open('').convert('RGB')
-    image_tensor = transform(image).unsqueeze(0).to(device)
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image file provided'}), 400
+
+    file = request.files['image']
+
+    try:
+        # Load and preprocess image
+        image = Image.open(file.stream).convert('RGB')
+        image_tensor = transform(image).unsqueeze(0).to(device)
+
+        # Run inference
+        with torch.no_grad():
+            output = model(image_tensor)
+            _, predicted = torch.max(output, 1)
+            predicted_class = class_names[predicted.item()]
+        print(f'Predicted Class: {predicted_class}\n\n\n\n')  # Add this line to print the predicted classpredicted_class)
+        advice = rag_system.get_advice(predicted_class)
+        return jsonify({
+            "predicted_class": predicted_class,
+            "advice":advice,
+        })
+        
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     
-    # Run inference
-    with torch.no_grad():
-        output = model(image_tensor)
-        _, predicted = torch.max(output, 1)
-        predicted_class = class_names[predicted.item()]
-    
-    advice = rag_system.get_advice(predicted_class)
-    return jsonify({
-        "advice":advice
-    })
     
 
 
@@ -409,6 +423,7 @@ def health_check():
         
         'crop_recommendation ': crop_recommendation_model is not None,
         'crop_yield ': crop_yield_model is not None,
+        'plant_disease ': model is not None
 
         
         }})

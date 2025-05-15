@@ -15,6 +15,7 @@ export default function DiseaseDetection() {
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [results, setResults] = useState<any | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [messages, setMessages] = useState<{ text: string; isUser: boolean }[]>([
@@ -39,7 +40,8 @@ export default function DiseaseDetection() {
     };
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -52,7 +54,13 @@ export default function DiseaseDetection() {
       };
       
       reader.readAsDataURL(file);
+      setSelectedFile(file);
+      
     }
+     // Prepare the form data to send to Flask
+
+
+
   };
 
   const captureImage = () => {
@@ -67,42 +75,67 @@ export default function DiseaseDetection() {
 
   const analyzeImage = async () => {
     if (!selectedImage) return;
-    
-    setIsAnalyzing(true);
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+      formData.append('image', selectedFile); // 'image' is the field name expected by Flask
+      setIsAnalyzing(true);
+
+      try {
+        const response = await fetch('http://localhost:5000/api/plant-diagnosis', {
+          method: 'POST',
+          body: formData,
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to upload image');
+        }
+  
+        const data = await response.json();
+        console.log('Server response:', data);
+        addMessage(`Server response: ${JSON.stringify(data)}`, true);
+        setResults(data);
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        addMessage('Error uploading image', true);
+      }
+      setIsAnalyzing(false);
+
     addMessage('Analyzing image...', false);
     
-    // Simulate processing time
-    setTimeout(() => {
-      // Local TensorFlow.js inference (mock)
-      const localResult = {
-        status: mockDiseaseResults.status,
-        disease: mockDiseaseResults.disease
-      };
+    // // Simulate processing time
+    // setTimeout(() => {
+    //   // Local TensorFlow.js inference (mock)
+    //   const localResult = {
+    //     status: mockDiseaseResults.status,
+    //     disease: mockDiseaseResults.disease
+    //   };
       
-      addMessage(`Analysis complete: ${localResult.status} - ${localResult.disease}`, false);
+    //   addMessage(`Analysis complete: ${localResult.status} - ${localResult.disease}`, false);
       
-      // If online, get more detailed information from backend
-      if (isOnline) {
-        addMessage('Fetching detailed information from our database...', false);
+    //   // If online, get more detailed information from backend
+    //   // if (isOnline) {
+    //   //   addMessage('Fetching detailed information from our database...', false);
         
-        // Simulate API call
-        setTimeout(() => {
-          setResults(mockDiseaseResults);
-          addMessage(`Disease: ${mockDiseaseResults.disease}`, false);
-          addMessage(`Details: ${mockDiseaseResults.details}`, false);
-          addMessage(`Treatment: ${mockDiseaseResults.treatment}`, false);
-          setIsAnalyzing(false);
-        }, 1000);
-      } else {
-        setResults(localResult);
-        addMessage('You are offline. Connect to the internet for detailed information and treatment recommendations.', false);
-        setIsAnalyzing(false);
-      }
-    }, 2000);
+    //   //   // Simulate API call
+    //   //   setTimeout(() => {
+    //   //     setResults(mockDiseaseResults);
+    //   //     addMessage(`Disease: ${mockDiseaseResults.disease}`, false);
+    //   //     addMessage(`Details: ${mockDiseaseResults.details}`, false);
+    //   //     addMessage(`Treatment: ${mockDiseaseResults.treatment}`, false);
+    //   //     setIsAnalyzing(false);
+    //   //   }, 1000);
+    //   // } else {
+    //   //   setResults(localResult);
+    //   //   addMessage('You are offline. Connect to the internet for detailed information and treatment recommendations.', false);
+    //   //   setIsAnalyzing(false);
+    //   // }
+    // }, 2000);
   };
 
   const resetAnalysis = () => {
     setSelectedImage(null);
+    setSelectedFile(null);
     setResults(null);
     setMessages([
       { text: 'Welcome to AI-Powered Leaf Disease Detection! Upload or capture a photo of a plant leaf to analyze.', isUser: false }
@@ -199,22 +232,22 @@ export default function DiseaseDetection() {
             ) : results ? (
               <div className="results-content">
                 <div className="prediction-result">
-                  <h3 style={{ color: results.status === 'Healthy' ? 'var(--primary-color)' : '#f44336' }}>
-                    {results.status}
+                  <h3 style={{ color: results?.predicted_class?.includes('Healthy') ? 'var(--primary-color)' : '#f44336' }}>
+                    {results.predicted_class}
                   </h3>
-                  {results.disease && (
+                  {/* {results.disease && (
                     <div className="result-item">
                       <strong>Disease:</strong> {results.disease}
                     </div>
-                  )}
-                  {results.details && (
+                  )} */}
+                  {/* {results.details && (
                     <div className="result-item">
                       <strong>Details:</strong> {results.details}
                     </div>
-                  )}
-                  {results.treatment && (
+                  )} */}
+                  {results.advice && (
                     <div className="result-item">
-                      <strong>Treatment:</strong> {results.treatment}
+                      <strong>Advice:</strong> {results.advice}
                     </div>
                   )}
                 </div>

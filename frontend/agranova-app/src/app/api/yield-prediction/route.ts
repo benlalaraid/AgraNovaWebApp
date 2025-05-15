@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Connect to the Python backend service that loads the XGBoost model and makes predictions
     try {
       // Connect to the Python backend running on port 5001
-      const backendUrl = 'http://localhost:5001/api/yield-prediction';
+      const backendUrl = 'http://localhost:5000/api/yield-prediction';
       
       const response = await fetch(backendUrl, {
         method: 'POST',
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       const data = await response.json();
       
       // Return the prediction result from the actual model
+      // console.log('data : ', data);
       return NextResponse.json(data);
     } catch (backendError) {
       console.error('Error connecting to Python backend:', backendError);
@@ -45,7 +46,6 @@ export async function POST(request: NextRequest) {
       // If we can't connect to the Python backend, use a deterministic calculation instead of random
       // This is still a fallback, but without randomness
       const yield_hg_ha = calculateDeterministicYield(area, item, year, average_rain_fall_mm_per_year, pesticides_tonnes, avg_temp);
-      
       return NextResponse.json({
         yield_hg_ha,
         area,
